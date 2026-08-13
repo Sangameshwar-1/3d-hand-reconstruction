@@ -1,0 +1,14 @@
+{
+  "capture_date": "2026-08-10T10:44:52.512705",
+  "total_frames": 118,
+  "camera_index": 1,
+  "camera_resolution": [
+    640,
+    480
+  ],
+  "capture_duration_sec": 10.59,
+  "sync_threshold_sec": 0.015,
+  "extrinsic_calibrated": false,
+  "hand_filter": "any",
+  "simulated_leap": false
+}

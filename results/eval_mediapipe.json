@@ -1,0 +1,33 @@
+{
+  "model": "mediapipe",
+  "frames_evaluated": 74,
+  "overall_mpjpe_mm": 179.36,
+  "axis_errors_mm": {
+    "x": 58.79,
+    "y": 146.92,
+    "z": 59.94
+  },
+  "per_joint_mpjpe_mm": {
+    "Wrist": 0.0,
+    "Thumb_CMC": 55.54,
+    "Thumb_MCP": 123.75,
+    "Thumb_IP": 170.49,
+    "Thumb_Tip": 202.56,
+    "Index_MCP": 176.38,
+    "Index_PIP": 230.47,
+    "Index_DIP": 242.91,
+    "Index_Tip": 244.39,
+    "Middle_MCP": 177.52,
+    "Middle_PIP": 226.78,
+    "Middle_DIP": 229.22,
+    "Middle_Tip": 225.55,
+    "Ring_MCP": 169.7,
+    "Ring_PIP": 208.99,
+    "Ring_DIP": 203.07,
+    "Ring_Tip": 193.85,
+    "Pinky_MCP": 156.57,
+    "Pinky_PIP": 181.55,
+    "Pinky_DIP": 177.11,
+    "Pinky_Tip": 170.04
+  }
+}

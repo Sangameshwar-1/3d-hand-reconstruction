@@ -1,0 +1,33 @@
+# ==============================================================================
+# Ultraleap 3Di Monocular RGB Evaluation Framework — Dependencies
+# ==============================================================================
+# Install:  pip install -r requirements.txt
+# Note:     leapc-python-bindings requires the Gemini Ultraleap Hand Tracking
+#           Service to be installed and running on the system.
+# ==============================================================================
+
+# --- Core ---
+numpy>=1.24.0
+opencv-python>=4.8.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# --- Ultraleap LeapC Python Bindings ---
+# NOTE: Not available on PyPI. Must be built from source:
+# git clone https://github.com/ultraleap/leapc-python-bindings
+# cd leapc-python-bindings
+# pip install -r requirements.txt
+# python -m build leapc-cffi
+# pip install leapc-cffi/dist/leapc_cffi-0.0.1.tar.gz
+# pip install -e leapc-python-api
+# leap-python-api>=0.0.1
+
+# --- Hand Pose Baseline (MediaPipe) ---
+mediapipe>=0.10.0
+
+# --- Utilities ---
+tqdm>=4.65.0
+matplotlib>=3.7.0
+
+# --- Optional: TensorBoard for training monitoring ---
+# tensorboard>=2.14.0

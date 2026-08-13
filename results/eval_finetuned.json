@@ -1,0 +1,33 @@
+{
+  "model": "finetuned",
+  "frames_evaluated": 74,
+  "overall_mpjpe_mm": 85.91,
+  "axis_errors_mm": {
+    "x": 54.82,
+    "y": 56.5,
+    "z": 21.67
+  },
+  "per_joint_mpjpe_mm": {
+    "Wrist": 0.0,
+    "Thumb_CMC": 17.07,
+    "Thumb_MCP": 58.26,
+    "Thumb_IP": 79.89,
+    "Thumb_Tip": 91.37,
+    "Index_MCP": 72.88,
+    "Index_PIP": 104.83,
+    "Index_DIP": 114.32,
+    "Index_Tip": 122.14,
+    "Middle_MCP": 71.25,
+    "Middle_PIP": 104.56,
+    "Middle_DIP": 121.1,
+    "Middle_Tip": 123.41,
+    "Ring_MCP": 71.16,
+    "Ring_PIP": 98.2,
+    "Ring_DIP": 106.46,
+    "Ring_Tip": 112.26,
+    "Pinky_MCP": 65.46,
+    "Pinky_PIP": 84.04,
+    "Pinky_DIP": 92.07,
+    "Pinky_Tip": 93.41
+  }
+}
