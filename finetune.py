@@ -57,7 +57,8 @@ class FineTunedHandPoseModel(nn.Module):
 
     def forward(self, x):
         # Forward pass through modified ViT
-        return self.backbone(x)
+        # Scale output by 200.0 to help gradients flow when regressing large absolute mm values
+        return self.backbone(x) * 200.0
 
 
 class PhysicsInformedLoss(nn.Module):

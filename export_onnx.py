@@ -1,6 +1,12 @@
 import torch
 import config
 from finetune import FineTunedHandPoseModel
+import sys
+import io
+
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 def main():
     print("[EXPORT] Initializing model architecture...")
