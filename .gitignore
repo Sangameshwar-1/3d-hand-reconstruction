@@ -1,3 +1,11 @@
 
 checkpoints/*.pth
+checkpoints/*.pth.bak
+*.onnx
 *.onnx.data
+__pycache__/
+*.pyc
+.DS_Store
+dataset_ir/
+test_*.png
+.env

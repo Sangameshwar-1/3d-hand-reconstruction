@@ -1,0 +1,44 @@
+{
+  "mpjpe_mm": 23.56,
+  "pa_mpjpe_mm": 11.35,
+  "axis_errors_mm": {
+    "x": 10.13,
+    "y": 14.57,
+    "z_depth": 11.5
+  },
+  "per_finger_mpjpe_mm": {
+    "Thumb": 26.41,
+    "Index": 26.66,
+    "Middle": 24.9,
+    "Ring": 22.19,
+    "Pinky": 23.51
+  },
+  "per_joint_mpjpe_mm": {
+    "Wrist": 0.0,
+    "Thumb_CMC": 16.4,
+    "Thumb_MCP": 23.9,
+    "Thumb_IP": 29.33,
+    "Thumb_Tip": 36.02,
+    "Index_MCP": 19.56,
+    "Index_PIP": 23.75,
+    "Index_DIP": 28.47,
+    "Index_Tip": 34.88,
+    "Middle_MCP": 16.06,
+    "Middle_PIP": 20.73,
+    "Middle_DIP": 27.42,
+    "Middle_Tip": 35.37,
+    "Ring_MCP": 13.4,
+    "Ring_PIP": 18.05,
+    "Ring_DIP": 24.69,
+    "Ring_Tip": 32.61,
+    "Pinky_MCP": 15.68,
+    "Pinky_PIP": 18.6,
+    "Pinky_DIP": 27.3,
+    "Pinky_Tip": 32.47
+  },
+  "evaluated_samples": 1600,
+  "missed_by_locator": 30,
+  "crop_mode": "handlocnet",
+  "mean_pose_baseline_mpjpe_mm": 71.71,
+  "model_parameters": 1383035
+}

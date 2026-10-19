@@ -18,11 +18,21 @@ LEAP_DIR = DATASET_DIR / "leap"
 CALIBRATION_DIR = PROJECT_ROOT / "calibration"
 CHECKPOINTS_DIR = PROJECT_ROOT / "checkpoints"
 RESULTS_DIR = PROJECT_ROOT / "results"
+DATASET_IR_DIR = PROJECT_ROOT / "dataset_ir"
+
+# ==============================================================================
+# 3DFist (stereo IR)
+# ==============================================================================
+IR_INPUT_SIZE = 128            # Per-view hand crop fed to Stereo3DFistNet
+# Written into every 3DFist checkpoint. Bump when preprocessing or label space
+# changes so stale checkpoints are rejected instead of silently mispredicting.
+FIST_INPUT_FORMAT = "stereo_ir_perspective_v3"
+HANDLOC_INPUT_FORMAT = "ir_handloc_v1"
 
 # ==============================================================================
 # Camera
 # ==============================================================================
-CAMERA_INDEX = 0               # OpenCV VideoCapture device index
+CAMERA_INDEX = 1               # OpenCV VideoCapture device index (1 = Dell RGB webcam)
 CAMERA_WIDTH = 640             # Requested resolution (may fall back to native)
 CAMERA_HEIGHT = 480
 CAMERA_FPS = 30                # Requested FPS

@@ -51,11 +51,20 @@ class HandPoseDataset(Dataset):
         
         # Default transforms for ViT models (ImageNet norms)
         if transform is None:
-            self.transform = T.Compose([
-                T.ToTensor(),
-                T.Resize((self.image_size, self.image_size), antialias=True),
-                T.Normalize(mean=config.IMAGENET_MEAN, std=config.IMAGENET_STD)
-            ])
+            if split == "train":
+                self.transform = T.Compose([
+                    T.ToTensor(),
+                    T.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
+                    T.RandomAffine(degrees=0, translate=(0.2, 0.2), scale=(0.8, 1.2)),
+                    T.Resize((self.image_size, self.image_size), antialias=True),
+                    T.Normalize(mean=config.IMAGENET_MEAN, std=config.IMAGENET_STD)
+                ])
+            else:
+                self.transform = T.Compose([
+                    T.ToTensor(),
+                    T.Resize((self.image_size, self.image_size), antialias=True),
+                    T.Normalize(mean=config.IMAGENET_MEAN, std=config.IMAGENET_STD)
+                ])
         else:
             self.transform = transform
 

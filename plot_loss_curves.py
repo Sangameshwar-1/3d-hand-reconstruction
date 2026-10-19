@@ -119,34 +119,37 @@ def plot(log: dict, out_path: Path):
         arrowprops=dict(arrowstyle="->", color="white", lw=0.7),
     )
 
-    # ── Panel 2: XYZ (spatial) loss ─────────────────────────────────────────
+    # ── Panel 2: Per-component train loss breakdown ─────────────────────────
     ax = axes[0, 1]
-    ax.plot(epochs, log["xyz_loss"], color=PALETTE["xyz"],
-            linewidth=1.2, alpha=0.4, label="XYZ (raw)")
-    ax.plot(epochs, smooth(log["xyz_loss"]), color=PALETTE["xyz"],
-            linewidth=2.0, label="XYZ (smoothed)")
-    style_ax(ax, "Spatial Loss  (Anisotropic XYZ MSE)", "Loss")
+    if "train_coord" in log:
+        ax.plot(epochs, log["train_coord"], color=PALETTE["xyz"],
+                linewidth=1.2, alpha=0.4, label="Coord (raw)")
+        ax.plot(epochs, smooth(log["train_coord"]), color=PALETTE["xyz"],
+                linewidth=2.0, label="Coord (smoothed)")
+    style_ax(ax, "Coordinate Loss  (train)", "Loss")
 
     # ── Panel 3: Bone-length loss ────────────────────────────────────────────
     ax = axes[1, 0]
-    ax.plot(epochs, log["bone_loss"], color=PALETTE["bone"],
-            linewidth=1.2, alpha=0.4, label="Bone (raw)")
-    ax.plot(epochs, smooth(log["bone_loss"]), color=PALETTE["bone"],
-            linewidth=2.0, label="Bone (smoothed)")
-    style_ax(ax, "Bone-Length Regularizer Loss", "L1 Loss (mm)")
+    if "train_bone" in log:
+        ax.plot(epochs, log["train_bone"], color=PALETTE["bone"],
+                linewidth=1.2, alpha=0.4, label="Bone (raw)")
+        ax.plot(epochs, smooth(log["train_bone"]), color=PALETTE["bone"],
+                linewidth=2.0, label="Bone (smoothed)")
+    style_ax(ax, "Bone-Length Regularizer Loss", "Loss")
 
     # ── Panel 4: Angle loss + MPJPE (dual-axis) ──────────────────────────────
     ax = axes[1, 1]
-    ax.plot(epochs, log["angle_loss"], color=PALETTE["angle"],
-            linewidth=1.2, alpha=0.4, label="Angle (raw)")
-    ax.plot(epochs, smooth(log["angle_loss"]), color=PALETTE["angle"],
-            linewidth=2.0, label="Angle (smoothed)")
-    style_ax(ax, "Joint Angle Loss  ·  MPJPE", "Angle Loss")
+    if "train_angle" in log:
+        ax.plot(epochs, log["train_angle"], color=PALETTE["angle"],
+                linewidth=1.2, alpha=0.4, label="Angle (raw)")
+        ax.plot(epochs, smooth(log["train_angle"]), color=PALETTE["angle"],
+                linewidth=2.0, label="Angle (smoothed)")
+    style_ax(ax, "Joint Angle Loss  ·  Val MPJPE", "Angle Loss")
 
     # Second y-axis for MPJPE
     ax2 = ax.twinx()
-    ax2.plot(epochs, log["mpjpe_mm"], color=PALETTE["mpjpe"],
-             linewidth=1.8, linestyle="--", label="MPJPE (mm)")
+    ax2.plot(epochs, log["val_mpjpe_mm"], color=PALETTE["mpjpe"],
+             linewidth=1.8, linestyle="--", label="Val MPJPE (mm)")
     ax2.set_ylabel("MPJPE (mm)", color=PALETTE["mpjpe"], fontsize=9)
     ax2.tick_params(axis="y", colors=PALETTE["mpjpe"], labelsize=8)
     ax2.spines["right"].set_edgecolor(PALETTE["mpjpe"])
@@ -161,7 +164,7 @@ def plot(log: dict, out_path: Path):
     )
 
     # Annotate final MPJPE
-    final_mpjpe = log["mpjpe_mm"][-1]
+    final_mpjpe = log["val_mpjpe_mm"][-1]
     ax2.annotate(
         f"Final\n{final_mpjpe:.1f} mm",
         xy=(epochs[-1], final_mpjpe),
@@ -172,14 +175,14 @@ def plot(log: dict, out_path: Path):
 
     # ── Footer ───────────────────────────────────────────────────────────────
     total_epochs = len(epochs)
-    best_mpjpe   = min(log["mpjpe_mm"])
+    best_mpjpe   = min(log["val_mpjpe_mm"])
     best_val     = min(log["val_loss"])
     fig.text(
         0.5, 0.01,
         f"Total epochs: {total_epochs}  |  "
         f"Best val loss: {best_val:.4f}  |  "
         f"Best MPJPE: {best_mpjpe:.2f} mm  |  "
-        f"λ_z=10  λ_bone=1.5  λ_angle=2.0",
+        f"λ_z=3  λ_bone=1.5  λ_angle=1.0",
         ha="center", color="#888888", fontsize=8
     )
 
