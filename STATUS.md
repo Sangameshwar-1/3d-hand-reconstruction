@@ -2,11 +2,18 @@
 
 _Last updated: 2026-10-21_
 
-## Goal (as currently understood — see Open Questions)
+## Goal
 
-Use **two 3D sensor cameras** viewing the hand from different sides to build a dataset
-where the second camera supplies ground truth for the parts the first camera cannot see.
-Train a model that, from **one camera only**, predicts what is hidden behind the object.
+Use **two Ultraleap 3Di units** facing the scene from different sides. Together they see
+what one alone cannot, which gives ground truth for the hidden parts.
+Train a model that takes **one 3Di's view** and outputs the **complete 3D scene**,
+including the hidden parts: the hand's own occluded fingers, and any held object
+(e.g. a whole cup when only part of it is visible).
+
+## Team
+
+- Sangameshwar: built everything up to 3DFist. Has `dataset_ir/` and the checkpoints.
+- Amitabh: joined 2026-10-21. Working on the two-sensor phase.
 
 ## Where we are: single-sensor stage
 
@@ -48,21 +55,39 @@ teach "what is behind". This is exactly what the second camera has to fix.
 - `__pycache__/*.pyc` are tracked despite `.gitignore`.
 - README links point to another machine's path (`c:/Users/SANGAMESHWAR/...`).
 
-## Next steps (proposed, pending answers below)
+## Do we need Sangameshwar's `dataset_ir/` and checkpoints?
 
-1. Choose/confirm second sensor and mounting (e.g. opposite side of the hand).
-2. Multi-device capture with timestamp sync.
-3. Extrinsic calibration between the two sensors (shared target).
-4. Fuse both views → ground truth for joints/surface hidden from camera A.
-5. Train single-view model (camera A input) against fused labels; evaluate on occluded joints specifically.
+**No, they aren't blocking.** The new goal needs new two-sensor recordings anyway. The old
+labels came from a single device, so they never saw the hidden parts. The **code** is
+what we reuse (`leap_ir.py`, `capture_ir.py`, `ir_geometry.py`, `perspective_crop.py`).
+Nice to have later: the old 3DFist numbers as a baseline, and the weights as a starting point.
+
+## Technical facts that shape the plan
+
+- **A 3Di does not output depth or a point cloud.** It gives two IR images plus
+  Ultraleap's hand-joint tracking. Cup geometry has to come from our own stereo depth
+  (disparity from the L/R IR pair, using `rect_lut.npz` / factory calibration).
+- **Ultraleap tracks hands only**, not objects. Any cup ground truth has to come from fused depth.
+- **Two active-IR units facing each other may interfere.** Each one's 850 nm LEDs light
+  up the other's images. Test this first, before building anything else.
+
+## Next steps
+
+1. **Hardware smoke test:** both 3Di units on one PC through LeapC multi-device; record both
+   IR streams at once; check how bad the interference is at the planned angles.
+2. Two-device capture: extend `capture_ir.py` to save per-device streams plus timestamps.
+3. Extrinsic calibration between units (shared target visible in IR, or the same hand
+   tracked by both and aligned with Procrustes).
+4. Per-view stereo depth → fused point cloud in one frame = ground truth for "full scene".
+5. Model: one view's input → completed 3D (representation TBD) + hand joints.
 
 ## Open questions
 
-- What exactly are the two sensors — two Ultraleap 3Di units, or a 3Di plus a depth camera (RealSense/Kinect/etc.)?
-- "Behind the object": the hand's own occluded fingers (e.g. fist), or a hand occluded by a held object? Is the target joints only, or a full surface/shape?
-- At inference, is the input strictly the single front camera?
-- Where is `dataset_ir/`, and do we have the trained checkpoints?
+- Output representation: point cloud, voxels, or mesh? (Point cloud is the simplest fit for fused stereo depth.)
+- Planned mounting: opposite each other (180°) or about 90° apart? This decides interference and coverage.
+- Do we have both 3Di units and a PC with enough USB 3 bandwidth for two streams?
 
 ## Log
 
 - 2026-10-21 — Status file created from repo review. Confirmed: single-sensor stage.
+- 2026-10-21 — Goal clarified: two 3Di units, single-view → full 3D (hand + held object). Old data not required.
