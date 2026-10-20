@@ -6,6 +6,7 @@ checkpoints/*.pth.bak
 __pycache__/
 *.pyc
 .DS_Store
-dataset_ir/
 test_*.png
 .env
+dataset_ir_rejected/
+checkpoints/*.part

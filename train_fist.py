@@ -24,7 +24,7 @@ import numpy as np
 
 import config
 from fist_model import BACKBONES, build_fist_model
-from fist_loss import PhysicsInformedFistLoss
+from fist_loss import PhysicsInformedFistLoss, finger_curl
 from fist_dataset import StereoIRDataset, mirror_stereo
 from fist_metrics import compute_mpjpe, compute_pa_mpjpe
 from hand_locator import HandLocator, measure_box_errors
@@ -47,6 +47,7 @@ def train_one_epoch(
     coord_loss = 0.0
     bone_loss = 0.0
     angle_loss = 0.0
+    curl_loss = 0.0
     hand_loss = 0.0
     num_batches = len(dataloader)
 
@@ -76,12 +77,14 @@ def train_one_epoch(
         coord_loss += l_dict["loss_coord"]
         bone_loss += l_dict["loss_bone"]
         angle_loss += l_dict["loss_angle"]
+        curl_loss += l_dict["loss_curl"]
 
     return {
         "train_loss": total_loss / num_batches,
         "train_coord": coord_loss / num_batches,
         "train_bone": bone_loss / num_batches,
         "train_angle": angle_loss / num_batches,
+        "train_curl": curl_loss / num_batches,
         "train_hand": hand_loss / num_batches,
     }
 
@@ -128,8 +131,13 @@ def evaluate_model(
 
     mpjpe, _, axis_err = compute_mpjpe(all_gts, all_preds)
     pa_mpjpe, _ = compute_pa_mpjpe(all_gts, all_preds)
+    pf, ps = finger_curl(torch.from_numpy(all_preds).float())
+    gf, gs = finger_curl(torch.from_numpy(all_gts).float())
+    curled = gs.abs() > 0.3  # clearly folded fingers: does the prediction fold them the same way?
 
     return {
+        "val_curl_err": float((pf - gf).abs().mean()),
+        "val_curl_dir_acc": float(((ps > 0) == (gs > 0))[curled].float().mean()) if curled.any() else 0.0,
         "val_loss": val_loss,
         "val_mpjpe_mm": mpjpe,
         "val_pa_mpjpe_mm": pa_mpjpe,
@@ -183,6 +191,8 @@ def main():
                         help="Weight of the left/right BCE loss")
     parser.add_argument("--mirror", action="store_true",
                         help="Mirror half the training samples (left hand <-> right hand)")
+    parser.add_argument("--curl-weight", type=float, default=0.0,
+                        help="Weight of the per-finger curl loss (bend amount + fold direction)")
     args = parser.parse_args()
 
     device = torch.device(args.device if (args.device == "cuda" and torch.cuda.is_available()) else "cpu")
@@ -224,6 +234,7 @@ def main():
         lambda_z=3.0,
         lambda_bone=1.5,
         lambda_angle=1.0,
+        lambda_curl=args.curl_weight,
     ).to(device)
 
     if has_encoder:
@@ -276,7 +287,8 @@ def main():
     # CSV Logger Header (appended to when resuming)
     fieldnames = [
         "epoch", "train_loss", "train_coord", "train_bone", "train_angle",
-        "val_loss", "val_mpjpe_mm", "val_pa_mpjpe_mm", "val_z_error_mm", "lr"
+        "val_loss", "val_mpjpe_mm", "val_pa_mpjpe_mm", "val_z_error_mm", "lr",
+        "train_curl", "val_curl_err", "val_curl_dir_acc",
     ]
     if args.hand_head:
         fieldnames += ["train_hand", "val_hand_acc", "val_hand_acc_mirror"]
@@ -294,7 +306,7 @@ def main():
     if has_encoder:
         print(f"  Encoder:      frozen for {args.freeze_epochs} epochs, then lr x {args.encoder_lr_scale}")
     print(f"  Augment:      roll +/-{args.max_roll:.0f} deg | curl-balanced sampling: {args.balance_curl} | "
-          f"left/right head: {args.hand_head} | mirror: {args.mirror}")
+          f"left/right head: {args.hand_head} | mirror: {args.mirror} | curl weight: {args.curl_weight}")
     print(f"  Samples:      {len(train_dataset)} train, {len(val_dataset)} val")
     print(f"  Input Shape:  (2, 128, 128) perspective stereo IR crops | Target: 21 Joints (mm, virtual camera frame)")
     print("=" * 72)
@@ -345,6 +357,7 @@ def main():
             f"MPJPE: {val_res['val_mpjpe_mm']:6.2f} mm | "
             f"PA-MPJPE: {val_res['val_pa_mpjpe_mm']:6.2f} mm | "
             f"Z Err: {val_res['val_z_error_mm']:5.2f} mm | "
+            f"Curl err {val_res['val_curl_err']:.3f} dir {val_res['val_curl_dir_acc'] * 100:5.1f}% | "
             + (f"L/R acc: {val_res['val_hand_acc'] * 100:5.1f}% / mirrored {val_res['val_hand_acc_mirror'] * 100:5.1f}% | "
                if args.hand_head else "")
             + f"{elapsed:4.1f}s {best_mark}"
@@ -368,6 +381,9 @@ def main():
                 "val_pa_mpjpe_mm": round(val_res["val_pa_mpjpe_mm"], 2),
                 "val_z_error_mm": round(val_res["val_z_error_mm"], 2),
                 "lr": f"{cur_lr:.6f}",
+                "train_curl": round(train_res["train_curl"], 4),
+                "val_curl_err": round(val_res["val_curl_err"], 4),
+                "val_curl_dir_acc": round(val_res["val_curl_dir_acc"], 4),
             })
 
     total_time = time.time() - start_time

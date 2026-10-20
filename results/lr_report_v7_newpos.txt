@@ -1,0 +1,23 @@
+[DATASET] 'val': 1066 frames from 2 session(s); skipped {'no_calibration': 0, 'hand_not_in_view': 0, 'low_confidence': 0, 'identical_views': 0, 'no_triangulation': 0, 'ultraleap_wrong_hand': 0, 'excluded': 0}
+
+1066 test frames; Ultraleap named the wrong hand in 642
+                            R palm    R back    L palm    L back    R fist    L fist       all
+  frames                       362       378       318         8       385         4      1066
+  Ultraleap L/R                94%        1%       25%        0%       71%      100%       40%
+  GT skeleton curl            100%      100%       98%      100%      100%      100%       99%
+  GT skeleton thumb           100%      100%      100%      100%      100%      100%      100%
+  GT skeleton curl+thumb      100%      100%      100%      100%      100%      100%      100%
+
+fist_r18_v6_best
+  MPJPE mm (Ultraleap ok)      17.6      29.3      13.4         -      18.2      24.8      16.8
+  L/R head                     96%       84%       14%        0%       81%       25%       66%
+  L/R from skeleton curl       76%       83%       46%        0%       66%       25%       69%
+  L/R from skeleton thumb       90%       84%       92%        0%       76%      100%       88%
+  L/R from skeleton curl+thumb       86%       84%       83%        0%       72%      100%       84%
+
+fist_r18_v7_best
+  MPJPE mm (Ultraleap ok)      14.2      22.8      12.6         -      14.7      29.2      13.9
+  L/R head                     95%       86%       66%        0%       82%       75%       82%
+  L/R from skeleton curl       98%       85%       69%        0%       84%       75%       84%
+  L/R from skeleton thumb       98%       87%       96%        0%       85%       75%       92%
+  L/R from skeleton curl+thumb       98%       86%       86%        0%       85%       75%       90%

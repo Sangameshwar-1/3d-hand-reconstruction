@@ -46,10 +46,53 @@ import torch
 
 import config
 import leap_ir
+from fist_loss import FINGER_NAMES, finger_curl
 from fist_model import load_fist_checkpoint
 from hand_locator import HandLocator
 from ir_geometry import LEAP_TO_CAM, RectilinearLUT, bbox_from_pixels
 from ir_transforms import StereoPerspectivePreprocessor
+
+
+def skeleton_side_score(j: np.ndarray) -> float:
+    """Handedness evidence in mm (< 0: right hand): fingers curl and the thumb opposes toward the palm.
+    Near 0 for a flat hand, whose left palm and right back look the same in IR."""
+    n = np.cross(j[9] - j[0], j[5] - j[17])
+    n /= np.linalg.norm(n) + 1e-9
+    mcp = j[[5, 9, 13, 17]].mean(0)
+    return float(n @ (j[[8, 12, 16, 20]].mean(0) - mcp) + n @ (j[4] - mcp))
+
+
+def skeleton_is_right(j: np.ndarray) -> bool:
+    return skeleton_side_score(j) < 0.0
+
+
+def finger_flexion(j: np.ndarray) -> np.ndarray:
+    """Per finger (T, I, M, R, P): 0 = straight, 1 = fully folded.
+
+    Fingers: joint bend (finger_curl flexion reaches ~0.65 in a fist). The thumb folds mostly by
+    swinging across the palm, so it uses its tip's distance to the middle/ring knuckles in palm
+    widths (~1.5 extended, ~1.0 folded on Ultraleap skeletons).
+    """
+    j = np.asarray(j, np.float32)
+    flex = finger_curl(torch.from_numpy(j[None]))[0][0].numpy() / 0.65
+    palm_w = np.linalg.norm(j[5] - j[17]) + 1e-6
+    flex[0] = (1.6 - np.linalg.norm(j[4] - j[[9, 13]].mean(0)) / palm_w) / 0.8
+    return np.clip(flex, 0.0, 1.0)
+
+
+def draw_finger_curl(panel: np.ndarray, flex: np.ndarray, ref=None):
+    """Per-finger fold bars, top right (0 = straight, full = folded); thin green bar = Ultraleap."""
+    x0, y0, w = 395, 22, 90
+    cv2.putText(panel, "Finger curl", (x0 - 25, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 200), 1)
+    for i, name in enumerate(FINGER_NAMES):
+        y = y0 + 8 + i * 17
+        cv2.putText(panel, name, (x0 - 15, y + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
+        cv2.rectangle(panel, (x0, y), (x0 + w, y + 11), (70, 70, 70), 1)
+        f = float(np.clip(flex[i], 0.0, 1.0))
+        cv2.rectangle(panel, (x0, y), (x0 + int(w * f), y + 11), (0, int(220 * (1 - f)), int(255 * f)), -1)
+        if ref is not None:
+            r = float(np.clip(ref[i], 0.0, 1.0))
+            cv2.line(panel, (x0, y + 13), (x0 + int(w * r), y + 13), (0, 255, 0), 2)
 
 # LeapC -> screen (x right, y up) as seen from the 3Di, matching the IR panel
 SENSOR_VIEW = np.diag([1.0, -1.0, -1.0]) @ LEAP_TO_CAM
@@ -291,9 +334,9 @@ def render_no_model_panel(canvas_size: int, reason: str) -> np.ndarray:
 
 def main():
     parser = argparse.ArgumentParser(description="3DFist Real-Time Live Tracking Dashboard")
-    parser.add_argument("--weights", type=str, default="checkpoints/fist_best.pth",
+    parser.add_argument("--weights", type=str, default="checkpoints/fist_r18_v7_best.pth",
                         help="Trained 3DFist weights path")
-    parser.add_argument("--handloc", type=str, default="checkpoints/handloc_best.pth",
+    parser.add_argument("--handloc", type=str, default="checkpoints/handloc_v5_best.pth",
                         help="Trained HandLocNet weights (IR-only hand crop)")
     parser.add_argument("--allow-stale", action="store_true",
                         help="Load checkpoints from an older input pipeline anyway")
@@ -350,6 +393,8 @@ def main():
     show_stereo_ir = False
     pred_hand_label = None
     p_right_avg = None
+    side_acc = None
+    curl_ema = None
     display_mode = 2 if model is not None else 1
     last_fid = -1
     pred_joints_3d = None
@@ -406,21 +451,21 @@ def main():
                     if out is not None:
                         x, geo, geom = out
                         with torch.no_grad():
-                            if getattr(model, "has_hand_head", False):
-                                pred_v, logit = model(x[None].to(device), geo[None].to(device), return_hand=True)
-                                p_right = float(torch.sigmoid(logit[0]))
-                                # A tracked hand keeps its side, so average out single-frame flips
-                                p_right_avg = p_right if p_right_avg is None else 0.85 * p_right_avg + 0.15 * p_right
-                                pred_hand_label = (f"Model: RIGHT hand ({p_right_avg * 100:.0f}%)" if p_right_avg >= 0.5
-                                                   else f"Model: LEFT hand ({(1 - p_right_avg) * 100:.0f}%)")
-                            else:
-                                pred_v = model(x[None].to(device), geo[None].to(device))
+                            pred_v = model(x[None].to(device), geo[None].to(device))
                             pred_virtual = pred_v[0].cpu().numpy()
+                        # A tracked hand keeps its side: accumulate evidence, so curled frames decide and
+                        # flat frames (score ~0) barely move it
+                        side_score = skeleton_side_score(pred_virtual)
+                        side_acc = side_score if side_acc is None else 0.95 * side_acc + side_score
+                        p_right_avg = 1.0 / (1.0 + np.exp(np.clip(side_acc / 20.0, -50, 50)))
+                        pred_hand_label = (f"Model: RIGHT hand ({p_right_avg * 100:.0f}%)" if p_right_avg >= 0.5
+                                           else f"Model: LEFT hand ({(1 - p_right_avg) * 100:.0f}%)")
                         pred_joints_3d = pred_virtual @ geom.leap_to_virtual  # wrist-relative, LeapC axes
                     infer_ms = (time.time() - t_infer_start) * 1000.0
             hand_found = bbox_l is not None and bbox_r is not None
             if not hand_found:
                 p_right_avg = None
+                side_acc = None
 
             # 3. Render Left Panel: IR Camera Feed (500x500)
             box_color = (0, 255, 255) if hand_found else (80, 80, 80)
@@ -479,6 +524,16 @@ def main():
                     error_mm=live_err, grab_strength=grab_str,
                     hand_label=" | ".join(s for s in (pred_hand_label, gt_hand_label) if s) or None,
                 )
+
+            curl_src = gt_joints if display_mode == 1 else pred_joints_3d
+            if curl_src is None or (display_mode in (2, 3) and model is None):
+                curl_ema = None
+            else:
+                # Smoothed over ~3 frames so single-frame skeleton glitches don't flash the bars
+                f = finger_flexion(curl_src)
+                curl_ema = f if curl_ema is None else 0.65 * curl_ema + 0.35 * f
+                draw_finger_curl(skel_panel, curl_ema,
+                                 finger_flexion(gt_joints) if display_mode == 3 and gt_joints is not None else None)
 
             # 5. Assemble Side-by-Side Dashboard (500x1004)
             divider = np.full((500, 4, 3), 45, dtype=np.uint8)

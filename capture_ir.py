@@ -45,6 +45,10 @@ def run_capture(output_dir: Path, duration: float, hand_filter: str, fps_cap: fl
     min_save_interval_us = 1e6 / fps_cap
     last_saved_ts = -1e18
     saved = 0
+    # Frames where Ultraleap names a different hand than the pose label are dropped at training time
+    named_hand = pose.split("_")[0].lower()
+    named_hand = named_hand if named_hand in ("left", "right") else None
+    usable = 0
     last_fid = -1
 
     print()
@@ -93,9 +97,13 @@ def run_capture(output_dir: Path, duration: float, hand_filter: str, fps_cap: fl
                 break
 
             has_hand = frame.joints is not None
-            good = has_hand and frame.meta["confidence"] >= min_confidence
+            # With two hands in view Ultraleap can swap their labels, and --hand then saves the wrong one
+            two_hands = len(frame.hands_seen) > 1
+            good = has_hand and not two_hands and frame.meta["confidence"] >= min_confidence
+            wrong_hand = has_hand and named_hand is not None and frame.meta["hand_type"].lower() != named_hand
             if good and (frame.timestamp_us - last_saved_ts) >= min_save_interval_us:
                 saved += 1
+                usable += not wrong_hand
                 last_saved_ts = frame.timestamp_us
                 name = f"frame_{saved:05d}"
                 cv2.imwrite(str(left_dir / f"{name}.png"), frame.left)
@@ -114,11 +122,22 @@ def run_capture(output_dir: Path, duration: float, hand_filter: str, fps_cap: fl
             # Preview: both views side by side
             display = cv2.cvtColor(np.hstack([frame.left, frame.right]), cv2.COLOR_GRAY2BGR)
             rem = max(0.0, duration - elapsed) if duration > 0 else elapsed
-            cv2.putText(display, f"Saved: {saved} | {rem:.1f}s | pose: {pose}", (10, 25),
+            cv2.putText(display, f"Saved: {saved} (usable {usable}) | {rem:.1f}s | pose: {pose}", (10, 25),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             cv2.putText(display, f"Synced FPS: {receiver.fps:.1f}", (10, 50),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            if has_hand:
+            if two_hands:
+                cv2.putText(display, "Two hands in view - hide your other hand (not saving)", (10, 75),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 255), 2)
+            elif not has_hand and frame.hands_seen:
+                cv2.putText(display, f"Ultraleap: {frame.hands_seen[0].upper()} hand - not saved. "
+                                     "Re-enter with open hand", (10, 75),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 255), 2)
+            elif wrong_hand:
+                cv2.putText(display, f"Ultraleap: {frame.meta['hand_type'].upper()} hand - not usable. "
+                                     "Hide hand 2s, re-enter open", (10, 75),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 255), 2)
+            elif has_hand:
                 m = frame.meta
                 col = (0, 220, 255) if good else (0, 0, 255)
                 cv2.putText(display, f"{m['hand_type']} hand  conf {m['confidence']:.2f}  "

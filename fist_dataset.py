@@ -60,8 +60,15 @@ def find_stereo_ir_samples(session_dir: Path) -> List[Tuple[Path, Path, Path]]:
     return samples
 
 
-def split_sessions(sessions: List[Path], split: str, val_ratio: float):
-    """Returns [(session, frame_slice)] for the requested split."""
+def split_sessions(sessions: List[Path], split: str, val_ratio: float, dataset_dir: Path):
+    """Returns [(session, frame_slice)] for the requested split.
+
+    dataset_dir/val_sessions.txt, if present, names the held-out sessions (one per line).
+    """
+    val_list = dataset_dir / "val_sessions.txt"
+    if val_list.exists():
+        names = set(val_list.read_text().split())
+        return [(s, slice(None)) for s in sessions if (s.name in names) == (split != "train")]
     if len(sessions) >= 2:
         n_val = max(1, int(round(len(sessions) * val_ratio)))
         chosen = sessions[-n_val:] if split != "train" else sessions[:-n_val]
@@ -99,8 +106,11 @@ def load_split_frames(dataset_dir, split: str, val_ratio: float, min_confidence:
     frames = []
     metas = []
     skipped = {"no_calibration": 0, "hand_not_in_view": 0, "low_confidence": 0, "identical_views": 0,
-               "no_triangulation": 0}
-    chosen = split_sessions(sessions, split, val_ratio)
+               "no_triangulation": 0, "ultraleap_wrong_hand": 0, "excluded": 0}
+    chosen = split_sessions(sessions, split, val_ratio, dataset_dir)
+    # session/frame stems whose Ultraleap hand a trained model disputes (sessions without a named hand)
+    excl_file = dataset_dir / "excluded_frames.txt"
+    excluded = set(excl_file.read_text().split()) if excl_file.exists() else set()
     for session, sl in chosen:
         samples = find_stereo_ir_samples(session)[sl]
         luts = load_session_luts(session)
@@ -112,6 +122,16 @@ def load_split_frames(dataset_dir, split: str, val_ratio: float, min_confidence:
             joint_data = load_joint_json(j_path)
             if joint_data.get("confidence", 1.0) < min_confidence:
                 skipped["low_confidence"] += 1
+                continue
+            # Ultraleap often tracks the right palm as a left back (same silhouette); when the
+            # recording names the hand, its label and its mirrored-chirality skeleton are wrong.
+            named = joint_data.get("pose_label", "").split("_")[0].capitalize()
+            if named in ("Left", "Right"):
+                if joint_data.get("hand_type") != named:
+                    skipped["ultraleap_wrong_hand"] += 1
+                    continue
+            elif f"{session.name}/{j_path.stem}" in excluded:
+                skipped["excluded"] += 1
                 continue
             img_l = cv2.imread(str(l_path), cv2.IMREAD_GRAYSCALE)
             img_r = cv2.imread(str(r_path), cv2.IMREAD_GRAYSCALE)

@@ -18,12 +18,33 @@ import torch.nn.functional as F
 
 import config
 
+FINGERS = ((1, 2, 3, 4), (5, 6, 7, 8), (9, 10, 11, 12), (13, 14, 15, 16), (17, 18, 19, 20))
+FINGER_NAMES = ("T", "I", "M", "R", "P")
+_FINGER_CHAINS = torch.tensor([(0, *f) for f in FINGERS])
+
+
+def finger_curl(j: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Per-finger (flexion, signed curl), each (B, 5) for joints (B, 21, 3).
+
+    flexion: mean (1 - cos) over the knuckle, middle and end joints; 0 = straight, 1 = 90 deg at each.
+    signed curl: tip-minus-knuckle offset along the palm normal / finger length. Its sign is the
+    direction the finger folds, so a left fist and a right fist curl opposite ways.
+    """
+    n = F.normalize(torch.cross(j[:, 9] - j[:, 0], j[:, 5] - j[:, 17], dim=-1), dim=-1, eps=1e-6)
+    pts = j[:, _FINGER_CHAINS.to(j.device)]  # (B, 5, 5, 3): wrist, then the finger's 4 joints
+    bones = pts[:, :, 1:] - pts[:, :, :-1]
+    u = F.normalize(bones, dim=-1, eps=1e-6)
+    flex = (1.0 - (u[:, :, 1:] * u[:, :, :-1]).sum(-1)).mean(-1)
+    length = bones[:, :, 1:].norm(dim=-1).sum(-1).clamp_min(1.0)
+    signed = ((pts[:, :, 4] - pts[:, :, 1]) * n[:, None]).sum(-1) / length
+    return flex, signed
+
 
 class PhysicsInformedFistLoss(nn.Module):
     """
     Combined Kinematic & Anisotropic Loss for 3DFist.
 
-    L = L_coord + lambda_bone * L_bone + lambda_angle * L_angle
+    L = L_coord + lambda_bone * L_bone + lambda_angle * L_angle + lambda_curl * L_curl
     """
 
     # Inter-phalangeal hinge triplets (Base, Hinge, Tip)
@@ -50,12 +71,14 @@ class PhysicsInformedFistLoss(nn.Module):
         lambda_bone: float = 1.5,
         lambda_angle: float = 1.0,
         huber_beta: float = 2.0,  # mm transition threshold for SmoothL1
+        lambda_curl: float = 0.0,
     ):
         super().__init__()
         self.lambda_xy = lambda_xy
         self.lambda_z = lambda_z
         self.lambda_bone = lambda_bone
         self.lambda_angle = lambda_angle
+        self.lambda_curl = lambda_curl
 
         self.smooth_l1 = nn.SmoothL1Loss(beta=huber_beta, reduction="none")
 
@@ -142,14 +165,21 @@ class PhysicsInformedFistLoss(nn.Module):
         # 3. Anatomical Hinge Flexion Limit Loss
         angle_loss = self.compute_angular_loss(pred_3d)
 
+        # 4. Per-finger curl: how far, and which way, each finger folds
+        pf, ps = finger_curl(pred_3d)
+        gf, gs = finger_curl(gt_3d)
+        curl_loss = F.l1_loss(pf, gf) + F.l1_loss(ps, gs)
+
         # Combined Total
-        total_loss = coord_loss + (self.lambda_bone * bone_loss) + (self.lambda_angle * angle_loss)
+        total_loss = (coord_loss + (self.lambda_bone * bone_loss) + (self.lambda_angle * angle_loss)
+                      + self.lambda_curl * curl_loss)
 
         loss_dict = {
             "loss_total": total_loss.item(),
             "loss_coord": coord_loss.item(),
             "loss_bone": bone_loss.item(),
             "loss_angle": angle_loss.item(),
+            "loss_curl": curl_loss.item(),
         }
 
         return total_loss, loss_dict

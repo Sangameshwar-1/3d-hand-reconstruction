@@ -1,0 +1,2 @@
+# Dataset files are stored byte-for-byte (no line-ending conversion)
+dataset_ir/** -text

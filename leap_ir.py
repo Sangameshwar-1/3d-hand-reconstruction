@@ -140,15 +140,16 @@ def read_rectilinear_luts(connection, half_range: float = 4.0, n: int = 161) -> 
 class StereoFrame:
     """One sensor frame: stereo IR images plus the tracked hand (if any)."""
 
-    __slots__ = ("frame_id", "timestamp_us", "left", "right", "joints", "meta")
+    __slots__ = ("frame_id", "timestamp_us", "left", "right", "joints", "meta", "hands_seen")
 
-    def __init__(self, frame_id, timestamp_us, left, right, joints, meta):
+    def __init__(self, frame_id, timestamp_us, left, right, joints, meta, hands_seen=()):
         self.frame_id = frame_id
         self.timestamp_us = timestamp_us
         self.left = left
         self.right = right
         self.joints = joints  # (21, 3) mm or None
         self.meta = meta      # hand_metadata() dict or None
+        self.hands_seen = hands_seen  # "left"/"right" for every tracked hand, before the hand filter
 
 
 class StereoIRReceiver(leap.Listener):
@@ -202,15 +203,15 @@ class StereoIRReceiver(leap.Listener):
 
     def on_tracking_event(self, event):
         chosen = None
-        for h in event.hands:
-            h_type = "left" if h.type == leap.HandType.Left else "right"
+        seen = tuple("left" if h.type == leap.HandType.Left else "right" for h in event.hands)
+        for h, h_type in zip(event.hands, seen):
             if self.hand_filter in ("any", h_type):
                 chosen = h
                 break
         if chosen is not None:
-            track = (extract_joints(chosen), hand_metadata(chosen))
+            track = (extract_joints(chosen), hand_metadata(chosen), seen)
         else:
-            track = (None, None)
+            track = (None, None, seen)
         fid = event.info.frame_id
         with self.lock:
             self._tracks[fid] = track
@@ -222,8 +223,8 @@ class StereoIRReceiver(leap.Listener):
         if fid not in self._images or fid not in self._tracks:
             return
         ts, left, right = self._images.pop(fid)
-        joints, meta = self._tracks.pop(fid)
-        self._latest = StereoFrame(fid, ts, left, right, joints, meta)
+        joints, meta, seen = self._tracks.pop(fid)
+        self._latest = StereoFrame(fid, ts, left, right, joints, meta, seen)
         self._fps_count += 1
         now = time.time()
         if now - self._fps_t0 >= 1.0:
