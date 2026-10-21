@@ -1,0 +1,17 @@
+{
+  "modality": "active_infrared_850nm_stereo",
+  "device": "Ultraleap 3Di (LE3100040000006230-3610-6D3E8107D7)",
+  "image_resolution": [
+    384,
+    384
+  ],
+  "stereo": true,
+  "joint_space": "leapc_tracking_mm",
+  "sync": "leapc_frame_id",
+  "pose_label": "left_back_toward",
+  "hand_filter": "any",
+  "save_fps": 10.0,
+  "min_confidence": 0.0,
+  "total_frames": 373,
+  "capture_date": "2026-10-19T10:05:58.881085"
+}
