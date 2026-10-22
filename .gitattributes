@@ -1,2 +1,4 @@
 # Dataset files are stored byte-for-byte (no line-ending conversion)
 dataset_ir/** -text
+# Trained weights (~140 MB) are stored with Git LFS
+checkpoints/*.pth filter=lfs diff=lfs merge=lfs -text

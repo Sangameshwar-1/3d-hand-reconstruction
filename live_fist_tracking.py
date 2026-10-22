@@ -334,9 +334,9 @@ def render_no_model_panel(canvas_size: int, reason: str) -> np.ndarray:
 
 def main():
     parser = argparse.ArgumentParser(description="3DFist Real-Time Live Tracking Dashboard")
-    parser.add_argument("--weights", type=str, default="checkpoints/fist_r18_v7_best.pth",
+    parser.add_argument("--weights", type=str, default="checkpoints/fist_r18_v8_best.pth",
                         help="Trained 3DFist weights path")
-    parser.add_argument("--handloc", type=str, default="checkpoints/handloc_v5_best.pth",
+    parser.add_argument("--handloc", type=str, default="checkpoints/handloc_v6_best.pth",
                         help="Trained HandLocNet weights (IR-only hand crop)")
     parser.add_argument("--allow-stale", action="store_true",
                         help="Load checkpoints from an older input pipeline anyway")

@@ -1,0 +1,47 @@
+[DATASET] 'val': 3293 frames from 6 session(s); skipped {'no_calibration': 0, 'hand_not_in_view': 0, 'low_confidence': 0, 'identical_views': 0, 'no_triangulation': 0, 'ultraleap_wrong_hand': 0, 'excluded': 0}
+
+3293 test frames; Ultraleap named the wrong hand in 779
+                            R palm    R back    L palm    L back    R fist    L fist       all
+  frames                      1061       555      1352       325       342       779      3293
+  Ultraleap L/R                69%       80%       88%       47%       79%       91%       76%
+  GT skeleton curl             87%      100%       97%      100%      100%      100%       95%
+  GT skeleton thumb           100%       78%      100%       98%      100%      100%       96%
+  GT skeleton curl+thumb      100%      100%      100%      100%      100%      100%      100%
+
+fist_r18_v7_best
+  MPJPE mm (Ultraleap ok)      11.5      13.3       9.8      21.3      12.5       7.0      11.6
+  curl err % (Ultraleap ok)        12        19         8        13         8         5        11
+  fold dir ok (Ultraleap ok)      100%       99%      100%      100%      100%      100%      100%
+  T straight->curled            0%        0%        3%        0%        0%        9%        1%
+  T folded->missed             67%       78%        0%         -       69%        0%        8%
+  I straight->curled            0%        0%        0%       10%         -         -        1%
+  I folded->missed              0%        0%        0%         -        0%        0%        0%
+  M straight->curled            0%        0%        0%        9%         -         -        1%
+  M folded->missed              0%        0%        0%        0%        0%        0%        0%
+  R straight->curled           96%       94%       73%       36%         -         -       83%
+  R folded->missed              0%        0%        0%        0%        0%        0%        0%
+  P straight->curled            1%        0%        0%        0%         -         -        0%
+  P folded->missed              0%        0%        0%        0%        0%        0%        0%
+  L/R head                     92%       99%       95%       46%       99%       99%       90%
+  L/R from skeleton curl       87%       99%       97%      100%       99%      100%       94%
+  L/R from skeleton thumb       97%       29%      100%       73%       99%      100%       84%
+  L/R from skeleton curl+thumb       94%       99%      100%       84%       99%      100%       96%
+
+fist_r18_v8_best
+  MPJPE mm (Ultraleap ok)      10.7      10.4       8.6      22.1      11.4       6.5      10.3
+  curl err % (Ultraleap ok)         4         3         3         7         8         4         4
+  fold dir ok (Ultraleap ok)      100%       98%      100%       96%      100%      100%       99%
+  T straight->curled            1%        0%        0%        1%       17%        0%        0%
+  T folded->missed             36%       33%        0%         -       39%        0%        4%
+  I straight->curled            0%        0%        0%        0%         -         -        0%
+  I folded->missed              0%       67%        0%         -        1%        0%        0%
+  M straight->curled            0%        0%        0%        8%         -         -        1%
+  M folded->missed              0%        0%        0%        0%        0%        0%        0%
+  R straight->curled            0%        0%        0%        5%         -         -        0%
+  R folded->missed              0%       67%        0%        0%        1%        0%        0%
+  P straight->curled            0%        0%        0%        0%         -         -        0%
+  P folded->missed              0%       67%        0%        0%        1%        0%        0%
+  L/R head                     94%      100%       94%       38%      100%       99%       90%
+  L/R from skeleton curl       77%       99%       88%       99%      100%      100%       87%
+  L/R from skeleton thumb      100%       34%      100%       72%      100%      100%       86%
+  L/R from skeleton curl+thumb       99%       97%      100%       94%      100%      100%       99%

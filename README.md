@@ -14,7 +14,7 @@ curled fingers and fists, the thumb, and telling the left hand from the right.
 | :--- | ---: | ---: | ---: |
 | Original sensor position (6 sessions, 3,293 frames) | 10.3 mm | 99% | 4% |
 | Low sensor position (2 sessions, 1,066 frames) | 12.9 mm | 90% | 7% |
-| Full pipeline, own hand detector (8 sessions, 2,934 frames) | 11.9 mm | | |
+| Full pipeline, own hand detector (8 sessions, 2,933 frames) | 11.9 mm | | |
 
 How these are measured is explained under [Results by version](#results-by-version).
 
@@ -195,15 +195,26 @@ git sparse-checkout set --no-cone '/*' '!/dataset_ir/'
 
 ## Setup
 
+```bash
+git lfs install                    # once per machine, so the trained weights download
+git clone --recurse-submodules https://github.com/Sangameshwar-1/3d-hand-reconstruction.git
+```
+
 - **Laptop (capture and live viewer):** Windows 11, Python 3.11, Ultraleap 3Di with the Ultraleap
   Hyperion tracking service.
-  - Install the LeapC Python bindings from [leapc-python-bindings/](leapc-python-bindings/); see
-    [requirements.txt](requirements.txt).
+  - `leapc-python-bindings/` is a submodule pointing to Ultraleap's
+    [leapc-python-bindings](https://github.com/ultraleap/leapc-python-bindings). Build and install
+    it as its README describes (see also [requirements.txt](requirements.txt)).
   - Install the rest with `pip install -r requirements.txt`.
 - **Training:** one GPU. The models here were trained on a GTX 1080 Ti on the IIIT ADA SLURM
   cluster: about 2 h 20 min for 60 epochs, including HandLocNet.
-- **Trained weights** (`checkpoints/*.pth`, about 140 MB each) are not in the repository because
-  they exceed GitHub's 100 MB file limit. Reproduce them with the commands below.
+- **Trained weights:** the current best model is stored with
+  [Git LFS](https://git-lfs.com) and used by the live viewer by default:
+  - `checkpoints/fist_r18_v8_best.pth` (140 MB), the v8 pose model.
+  - `checkpoints/handloc_v6_best.pth` (3 MB), its hand locator.
+
+  If you cloned before running `git lfs install`, run `git lfs pull` to fetch them. Older
+  versions are not published; the commands below reproduce v8.
 
 ---
 
@@ -244,14 +255,15 @@ To continue an interrupted run, add `--resume checkpoints/fist_r18_v8_last.pth`.
 python eval_fist.py --dataset dataset_ir --weights checkpoints/fist_r18_v8_best.pth \
     --handloc checkpoints/handloc_v6_best.pth --out results/eval_r18_v8.json
 
-# per hand and side (right/left x palm/back, fists): joint error, left/right and per-finger curl
-python lr_report.py checkpoints/fist_r18_v7_best.pth checkpoints/fist_r18_v8_best.pth
+# per hand and side (right/left x palm/back, fists): joint error, left/right and per-finger curl;
+# pass several checkpoints to compare them
+python lr_report.py checkpoints/fist_r18_v8_best.pth
 ```
 
 ### 4. Live viewer
 
 ```bash
-python live_fist_tracking.py --weights checkpoints/fist_r18_v8_best.pth --handloc checkpoints/handloc_v6_best.pth
+python live_fist_tracking.py        # uses checkpoints/fist_r18_v8_best.pth + handloc_v6_best.pth
 ```
 
 The left panel shows the IR stream with the hand crop. The right panel shows the 3D skeleton:

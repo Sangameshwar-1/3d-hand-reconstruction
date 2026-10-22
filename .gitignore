@@ -1,5 +1,7 @@
 
 checkpoints/*.pth
+!checkpoints/handloc_v6_best.pth
+!checkpoints/fist_r18_v8_best.pth
 checkpoints/*.pth.bak
 *.onnx
 *.onnx.data
