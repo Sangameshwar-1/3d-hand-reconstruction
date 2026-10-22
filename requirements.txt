@@ -1,5 +1,5 @@
 # ==============================================================================
-# Ultraleap 3Di Monocular RGB Evaluation Framework — Dependencies
+# 3DFist (Ultraleap 3Di stereo IR hand pose) — Dependencies
 # ==============================================================================
 # Install:  pip install -r requirements.txt
 # Note:     leapc-python-bindings requires the Gemini Ultraleap Hand Tracking
@@ -21,9 +21,6 @@ torchvision>=0.15.0
 # pip install leapc-cffi/dist/leapc_cffi-0.0.1.tar.gz
 # pip install -e leapc-python-api
 # leap-python-api>=0.0.1
-
-# --- Hand Pose Baseline (MediaPipe) ---
-mediapipe>=0.10.0
 
 # --- Utilities ---
 tqdm>=4.65.0

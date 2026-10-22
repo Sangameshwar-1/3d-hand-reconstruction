@@ -287,14 +287,12 @@ The left panel shows the IR stream with the hand crop. The right panel shows the
 - [ir_geometry.py](ir_geometry.py): projects 3D joints into the IR views using the device calibration.
 - [fist_dataset.py](fist_dataset.py): loads sessions, applies the test split and label filters.
 - [fist_metrics.py](fist_metrics.py): MPJPE and PA-MPJPE.
-- **Older RGB webcam pipeline:**
-  - Code: [capture.py](capture.py), [calibrate_intrinsics.py](calibrate_intrinsics.py),
-    [calibrate_extrinsics.py](calibrate_extrinsics.py), [transform.py](transform.py),
-    [inference.py](inference.py), [evaluate.py](evaluate.py), [finetune.py](finetune.py),
-    [visualize.py](visualize.py).
-  - Data: `dataset_aligned/`, `pilot_dataset/`, `test_dataset/`.
-  - This pipeline compared MediaPipe and a fine-tuned transformer against Ultraleap on an RGB
-    webcam. It is not used by 3DFist.
+- [dataset_utils.py](dataset_utils.py): reads and writes the joint JSON files.
+- [live_leap_ir.py](live_leap_ir.py): raw stereo IR viewer with Ultraleap's skeleton overlaid.
+- **Earlier RGB-webcam pipeline (removed):** this compared MediaPipe, a fine-tuned ViT and
+  HaMeR against Ultraleap on an RGB webcam. It is not part of 3DFist and was removed from the
+  repository on 2026-10-22. Its code and data are still in the git history, in commit `9e1e92f`
+  and earlier.
 
 ## Coordinate systems
 
