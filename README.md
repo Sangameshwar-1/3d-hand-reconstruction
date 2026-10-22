@@ -291,8 +291,8 @@ The left panel shows the IR stream with the hand crop. The right panel shows the
 - [live_leap_ir.py](live_leap_ir.py): raw stereo IR viewer with Ultraleap's skeleton overlaid.
 - **Earlier RGB-webcam pipeline (removed):** this compared MediaPipe, a fine-tuned ViT and
   HaMeR against Ultraleap on an RGB webcam. It is not part of 3DFist and was removed from the
-  repository on 2026-10-22. Its code and data are still in the git history, in commit `9e1e92f`
-  and earlier.
+  repository on 2026-10-22. Its code and data are kept on the
+  [`old-main`](https://github.com/Sangameshwar-1/3d-hand-reconstruction/tree/old-main) branch.
 
 ## Coordinate systems
 
