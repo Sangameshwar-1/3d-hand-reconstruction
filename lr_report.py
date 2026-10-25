@@ -2,7 +2,7 @@
 
 Keeps the frames where Ultraleap named the wrong hand (labelled with the hand named at
 capture), so L/R is scored on every frame; joint error only on frames where Ultraleap agrees.
-Usage: python lr_report.py ckpt1.pth [ckpt2.pth ...]
+Usage: python lr_report.py ckpt1.pth [ckpt2.pth ...]   (dataset: $DATASET_IR, default dataset_ir)
 """
 import os, sys
 from pathlib import Path
@@ -30,10 +30,10 @@ def load_with_named_hand(p):
 
 fd.load_joint_json = load_with_named_hand
 DEV = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ds = fd.StereoIRDataset("dataset_ir", split="val", val_ratio=0.2)
+ds = fd.StereoIRDataset(os.environ.get("DATASET_IR", "dataset_ir"), split="val", val_ratio=0.2)
 agree = np.array([m["grab"] >= 0 for m in ds.meta])
 fist = np.array([(m["grab"] if m["grab"] >= 0 else -1.0 - m["grab"]) >= 0.8 for m in ds.meta])
-batches = list(DataLoader(ds, batch_size=32, num_workers=8))
+batches = list(DataLoader(ds, batch_size=32, num_workers=8 if os.name != "nt" else 0))  # no __main__ guard: spawn would re-run this file
 tg = np.concatenate([b[2].numpy() for b in batches])
 right = np.concatenate([b[4].numpy() for b in batches]) > 0.5
 
